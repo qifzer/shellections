@@ -6,6 +6,7 @@ import requests
 import os
 import random
 import signal
+import sys
 
 # Load the data from the JSON file
 def download_connections_json():
@@ -142,7 +143,24 @@ def draw_stats_menu(stdscr, stats):
 
     stdscr.getch()
 
+def check_terminal_size(stdscr, min_height, min_width):
+    height, width = stdscr.getmaxyx()
+    if height < min_height or width < min_width:
+        stdscr.clear()
+        message = f"Terminal too small. Minimum size: {min_width}x{min_height}. Current size: {width}x{height}"
+        try:
+            stdscr.addstr(0, 0, message)
+            stdscr.refresh()
+            stdscr.getch()
+        except curses.error:
+            pass
+        return False
+    return True
+
 def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
+    if not check_terminal_size(stdscr, 24, 80):
+        return
+
     all_words = []
     for group in puzzle['answers']:
         all_words.extend(group['members'])
@@ -314,6 +332,9 @@ def show_results(stdscr, puzzle, emoji_representation):
     stdscr.getch()
 
 def main(stdscr):
+    if not check_terminal_size(stdscr, 24, 80):
+        return
+
     curses.curs_set(0)
     setup_colors()
 
@@ -367,4 +388,8 @@ def main(stdscr):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-    curses.wrapper(main)
+    try:
+        curses.wrapper(main)
+    except curses.error:
+        print("An error occurred. Make sure your terminal is at least 80x24 characters.")
+        sys.exit(1)
