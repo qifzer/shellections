@@ -1,2 +1,22 @@
 #+title: Shellections: NYT Connections in the Terminal
 #+subtitle: Built using N-Curses
+
+#+begin_quote
+⚠️ *Please Note*: Shellections is currently undergoing rapid development. Features may change frequently, and some functionality might be unstable.
+
+We encourage users to:
+- Report any issues you encounter on our [[https://github.com/your-username/shellections/issues][GitHub Issues page]].
+- Request new features or suggest improvements.
+- Check for updates regularly.
+#+end_quote
+
+* Features
+- Play NYT Connections puzzles directly in your terminal
+- Calendar view for selecting puzzles by date
+- Random puzzle selection
+- Track completed puzzles and view statistics
+- Customizable options
+- Infinite tries mode for practice
+- Shuffle functionality to rearrange words
+- Emoji representation of your attempts
+- Results view after completing a puzzle
