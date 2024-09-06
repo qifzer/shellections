@@ -358,7 +358,13 @@ def main(stdscr):
         draw_calendar(stdscr, year, month, available_dates, selected_date, set(stats['completed_dates']))
         height, width = stdscr.getmaxyx()
         draw_centered_text(stdscr, height - 4, "Use h/j/k/l to navigate, ENTER to select a date", curses.color_pair(WHITE))
-        draw_centered_text(stdscr, height - 3, "r: Random date, o: Options, s: Stats, q: Quit", curses.color_pair(WHITE))
+        
+        # Modify this line to conditionally include 's: Stats' only when show_stats is enabled
+        options_text = "r: Random date, o: Options"
+        if options['show_stats']:
+            options_text += ", s: Stats"
+        options_text += ", q: Quit"
+        draw_centered_text(stdscr, height - 3, options_text, curses.color_pair(WHITE))
 
         key = stdscr.getch()
 
