@@ -232,14 +232,6 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
         for i in range(num_rows):
             stdscr.addstr(start_y + i * 2 + 1, start_x + 72, '|')
 
-        # Add this new section to check for 3 out of 4 matches
-        if len(selected_words) == 4:
-            for group in puzzle['answers']:
-                matches = sum(1 for word in selected_words if word in group['members'])
-                if matches == 3:
-                    draw_centered_text(stdscr, height - 4, "You've matched 3 out of 4 in a group!", curses.color_pair(YELLOW) | curses.A_BOLD)
-                    break
-
         draw_centered_text(stdscr, height - 3, "Use h/j/k/l to move, SPACE to select, ENTER to submit, S to shuffle, Ctrl+S to solve.", curses.color_pair(WHITE))
         stdscr.refresh()
 
@@ -271,10 +263,23 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
         elif key == 10 and len(selected_words) == 4:  # ENTER key
             attempts_used += 1
             # Check if the selection is correct
+            correct_group = None
             for group in puzzle['answers']:
                 if set(selected_words) == set(group['members']):
-                    correct_groups.append(group)
+                    correct_group = group
                     break
+
+            if correct_group:
+                correct_groups.append(correct_group)
+            else:
+                # Check for 3 out of 4 matches here
+                for group in puzzle['answers']:
+                    matches = sum(1 for word in selected_words if word in group['members'])
+                    if matches == 3:
+                        draw_centered_text(stdscr, height - 4, "You've matched 3 out of 4 in a group!", curses.color_pair(YELLOW) | curses.A_BOLD)
+                        stdscr.refresh()
+                        stdscr.getch()  # Wait for user input before continuing
+                        break
 
             # Create emoji representation for this attempt
             attempt_emojis = []
