@@ -59,8 +59,14 @@ def setup_colors():
 
 def draw_centered_text(stdscr, y, text, color_pair=WHITE, attr=curses.A_NORMAL):
     height, width = stdscr.getmaxyx()
-    x = (width - len(text)) // 2
-    stdscr.addstr(y, x, text, color_pair | attr)
+    if y < 0 or y >= height:
+        return  # Don't draw if y is out of bounds
+    x = max(0, (width - len(text)) // 2)
+    text = text[:width]  # Truncate text if it's too long
+    try:
+        stdscr.addstr(y, x, text, color_pair | attr)
+    except curses.error:
+        pass  # Ignore errors if we can't write to the screen
 
 def draw_calendar(stdscr, year, month, available_dates, selected_date, completed_dates):
     height, width = stdscr.getmaxyx()
@@ -174,46 +180,46 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
         remaining_words = [word for word in all_words if not any(word in group['members'] for group in correct_groups)]
 
         # Calculate grid dimensions
-        grid_height = 7
-        grid_width = 72
+        grid_height = min(7, height - 6)  # Ensure grid fits vertically
+        grid_width = min(72, width - 2)   # Ensure grid fits horizontally
 
-        start_y = (height - grid_height) // 2
-        start_x = (width - grid_width) // 2
-
-        # Ensure start positions are not negative
-        start_y = max(1, start_y)
-        start_x = max(1, start_x)
-
-        # Calculate the number of rows needed
-        num_rows = (len(remaining_words) + 3) // 4
+        start_y = max(1, (height - grid_height) // 2)
+        start_x = max(1, (width - grid_width) // 2)
 
         # Draw horizontal separators
-        for i in range(num_rows + 1):
+        for i in range((len(remaining_words) + 3) // 4 + 1):
             separator = '+' + ('-' * 17 + '+') * 4
-            stdscr.addstr(start_y + i * 2, start_x, separator[:width - start_x])
+            try:
+                stdscr.addstr(start_y + i * 2, start_x, separator[:width - start_x])
+            except curses.error:
+                pass  # Ignore errors if we can't write to the screen
 
         # Display words
         for i, word in enumerate(remaining_words):
             y, x = divmod(i, 4)
+            if y >= grid_height // 2:
+                break  # Stop if we've run out of vertical space
             attr = curses.A_REVERSE if [y, x] == cursor_pos else curses.A_NORMAL
             display_y = start_y + y * 2 + 1
             display_x = start_x + x * 18
 
             if display_y < height - 1 and display_x + 18 < width:
-                # Draw left vertical separator
-                stdscr.addstr(display_y, display_x, '|')
-
-                if word in selected_words:
-                    stdscr.addstr(display_y, display_x + 1, f"[{word:^15}]", curses.color_pair(WHITE) | curses.A_BOLD | attr)
-                else:
-                    stdscr.addstr(display_y, display_x + 1, f" {word:^15} ", curses.color_pair(WHITE) | attr)
-
-                # Draw right vertical separator
-                stdscr.addstr(display_y, display_x + 18, '|')
+                try:
+                    stdscr.addstr(display_y, display_x, '|')
+                    if word in selected_words:
+                        stdscr.addstr(display_y, display_x + 1, f"[{word:^15}]", curses.color_pair(WHITE) | curses.A_BOLD | attr)
+                    else:
+                        stdscr.addstr(display_y, display_x + 1, f" {word:^15} ", curses.color_pair(WHITE) | attr)
+                    stdscr.addstr(display_y, display_x + 18, '|')
+                except curses.error:
+                    pass  # Ignore errors if we can't write to the screen
 
         # Draw right-most vertical separator
-        for i in range(num_rows):
-            stdscr.addstr(start_y + i * 2 + 1, start_x + 72, '|')
+        for i in range((len(remaining_words) + 3) // 4):
+            try:
+                stdscr.addstr(start_y + i * 2 + 1, start_x + 72, '|')
+            except curses.error:
+                pass  # Ignore errors if we can't write to the screen
 
         # Add this new section to check for 3 out of 4 matches
         if len(selected_words) == 4:
@@ -307,7 +313,6 @@ def show_results(stdscr, puzzle, emoji_representation):
     height, width = stdscr.getmaxyx()
 
     draw_centered_text(stdscr, height // 2 - 4, "Connections", curses.color_pair(WHITE), curses.A_BOLD)
-    draw_centered_text(stdscr, height // 2 - 2, f"Puzzle #{puzzle['puzzleNumber']}", curses.color_pair(WHITE))
 
     for i, row in enumerate(emoji_representation):
         draw_centered_text(stdscr, height // 2 + i, ''.join(row), curses.color_pair(WHITE))
