@@ -1,5 +1,5 @@
 #+title: Shellections: NYT Connections in the Terminal
-#+subtitle: Built using N-Curses
+Built using N-Curses
 
 #+begin_quote
 ⚠️ *Please Note*: Shellections is currently undergoing rapid development. Features may change frequently, and some functionality might be unstable.
