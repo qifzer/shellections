@@ -5,9 +5,8 @@
 ⚠️ *Please Note*: Shellections is currently undergoing rapid development. Features may change frequently, and some functionality might be unstable.
 
 We encourage users to:
-- Report any issues you encounter on our [[https://github.com/your-username/shellections/issues][GitHub Issues page]].
+- Report any issues you encounter on our [[https://github.com/qifzer/shellections/issues][GitHub Issues page]].
 - Request new features or suggest improvements.
-- Check for updates regularly.
 #+end_quote
 
 * Features
