@@ -324,53 +324,75 @@ def main(stdscr):
     curses.curs_set(0)
     setup_colors()
 
-    available_dates = set(puzzle_dict.keys())
-    current_date = datetime.now()
-    year, month = current_date.year, current_date.month
-    selected_date = current_date.strftime("%Y-%m-%d")
-
-    options = load_options()
-    stats = load_stats()
-
-    infinite_tries = False
+    # Define minimum required terminal size
+    MIN_HEIGHT = 24
+    MIN_WIDTH = 80
 
     while True:
-        stdscr.clear()
-        draw_calendar(stdscr, year, month, available_dates, selected_date, set(stats['completed_dates']))
         height, width = stdscr.getmaxyx()
-        draw_centered_text(stdscr, height - 4, "Use h/j/k/l to navigate, ENTER to select a date", curses.color_pair(WHITE))
-        draw_centered_text(stdscr, height - 3, "r: Random date, o: Options, s: Stats, q: Quit", curses.color_pair(WHITE))
-
-        key = stdscr.getch()
-
-        if key == ord('q'):
-            break
-        elif key == ord('h'):
-            current_date -= timedelta(days=1)
-        elif key == ord('l'):
-            current_date += timedelta(days=1)
-        elif key == ord('k'):
-            current_date -= timedelta(days=7)
-        elif key == ord('j'):
-            current_date += timedelta(days=7)
-        elif key == ord('r'):
-            current_date = datetime.strptime(random.choice(list(available_dates)), "%Y-%m-%d")
-        elif key == ord('o'):
-            draw_options_menu(stdscr, options)
-        elif key == ord('s'):
-            if options['show_stats']:
-                draw_stats_menu(stdscr, stats)
-        elif key == 10:  # ENTER key
-            if selected_date in puzzle_dict:
-                result = play_puzzle(stdscr, puzzle_dict[selected_date], stats, infinite_tries)
-                if result == 'quit':
-                    break
+        
+        if height < MIN_HEIGHT or width < MIN_WIDTH:
+            stdscr.clear()
+            draw_centered_text(stdscr, height // 2 - 1, "Terminal window too small!", curses.color_pair(YELLOW) | curses.A_BOLD)
+            draw_centered_text(stdscr, height // 2, f"Please resize to at least {MIN_WIDTH}x{MIN_HEIGHT}", curses.color_pair(WHITE))
+            draw_centered_text(stdscr, height // 2 + 1, "Press 'q' to quit or any other key to retry", curses.color_pair(WHITE))
+            
+            key = stdscr.getch()
+            if key == ord('q'):
+                break
             else:
-                draw_centered_text(stdscr, height - 5, "No puzzle available for this date.", curses.color_pair(1))
-                stdscr.getch()
+                continue
 
+        # Rest of your existing main function code
+        available_dates = set(puzzle_dict.keys())
+        current_date = datetime.now()
         year, month = current_date.year, current_date.month
         selected_date = current_date.strftime("%Y-%m-%d")
+
+        options = load_options()
+        stats = load_stats()
+
+        infinite_tries = False
+
+        while True:
+            stdscr.clear()
+            draw_calendar(stdscr, year, month, available_dates, selected_date, set(stats['completed_dates']))
+            draw_centered_text(stdscr, height - 4, "Use h/j/k/l to navigate, ENTER to select a date", curses.color_pair(WHITE))
+            draw_centered_text(stdscr, height - 3, "r: Random date, o: Options, s: Stats, q: Quit", curses.color_pair(WHITE))
+
+            key = stdscr.getch()
+
+            if key == ord('q'):
+                break
+            elif key == ord('h'):
+                current_date -= timedelta(days=1)
+            elif key == ord('l'):
+                current_date += timedelta(days=1)
+            elif key == ord('k'):
+                current_date -= timedelta(days=7)
+            elif key == ord('j'):
+                current_date += timedelta(days=7)
+            elif key == ord('r'):
+                current_date = datetime.strptime(random.choice(list(available_dates)), "%Y-%m-%d")
+            elif key == ord('o'):
+                draw_options_menu(stdscr, options)
+            elif key == ord('s'):
+                if options['show_stats']:
+                    draw_stats_menu(stdscr, stats)
+            elif key == 10:  # ENTER key
+                if selected_date in puzzle_dict:
+                    result = play_puzzle(stdscr, puzzle_dict[selected_date], stats, infinite_tries)
+                    if result == 'quit':
+                        break
+                else:
+                    draw_centered_text(stdscr, height - 5, "No puzzle available for this date.", curses.color_pair(1))
+                    stdscr.getch()
+
+            year, month = current_date.year, current_date.month
+            selected_date = current_date.strftime("%Y-%m-%d")
+
+        # Break out of the outer loop if we've exited the inner loop
+        break
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_IGN)
