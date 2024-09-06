@@ -2,7 +2,6 @@ import json
 import curses
 import calendar
 from datetime import datetime, timedelta
-import unicodedata
 import requests
 import os
 import random
