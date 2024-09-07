@@ -219,7 +219,7 @@ def check_terminal_size(stdscr, min_height, min_width):
     return True
 
 def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
-    if not check_terminal_size(stdscr, 24, 80):
+    if not check_terminal_size(stdscr, 18, 80):
         return
 
     all_words = []
@@ -303,14 +303,14 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
         elif key == 19:  # Ctrl+S
             correct_groups = puzzle['answers']
             break
-        elif key == ord('h') and cursor_pos[1] > 0:
-            cursor_pos[1] -= 1
-        elif key == ord('l') and cursor_pos[1] < 3:
-            cursor_pos[1] += 1
-        elif key == ord('k') and cursor_pos[0] > 0:
-            cursor_pos[0] -= 1
-        elif key == ord('j') and cursor_pos[0] < 3:
-            cursor_pos[0] += 1
+        elif key in [ord('h'), curses.KEY_LEFT, ord('b')]:  # Left arrow, 'h', or 'b'
+            cursor_pos[1] = max(0, cursor_pos[1] - 1)
+        elif key in [ord('l'), curses.KEY_RIGHT, ord('f')]:  # Right arrow, 'l', or 'f'
+            cursor_pos[1] = min(3, cursor_pos[1] + 1)
+        elif key in [ord('k'), curses.KEY_UP, ord('p')]:  # Up arrow, 'k', or 'p'
+            cursor_pos[0] = max(0, cursor_pos[0] - 1)
+        elif key in [ord('j'), curses.KEY_DOWN, ord('n')]:  # Down arrow, 'j', or 'n'
+            cursor_pos[0] = min(3, cursor_pos[0] + 1)
         elif key == ord(' '):  # SPACE key
             index = cursor_pos[0] * 4 + cursor_pos[1]
             if index < len(remaining_words):
@@ -319,7 +319,7 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
                     selected_words.remove(word)
                 elif len(selected_words) < 4:
                     selected_words.append(word)
-        elif key == ord('s') or key == ord('S'):  # New shuffle functionality
+        elif key in [ord('s'), ord('S')]:  # Shuffle functionality
             random.shuffle(all_words)
         elif key == 10 and len(selected_words) == 4:  # ENTER key
             attempts_used += 1
@@ -347,7 +347,7 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
             for word in selected_words:
                 for i, group in enumerate(puzzle['answers']):
                     if word in group['members']:
-                        attempt_emojis.append(["🟨", "🟦", "🟩", "🟪"][i])
+                        attempt_emojis.append(["🟨", "🟦", "���", "🟪"][i])
                         break
 
             if len(correct_groups) > len(emoji_representation):
@@ -398,7 +398,7 @@ def show_results(stdscr, puzzle, emoji_representation):
     stdscr.getch()
 
 def main(stdscr):
-    if not check_terminal_size(stdscr, 24, 80):
+    if not check_terminal_size(stdscr, 18, 80):
         return
 
     curses.curs_set(0)
@@ -422,7 +422,6 @@ def main(stdscr):
         height, width = stdscr.getmaxyx()
         draw_centered_text(stdscr, height - 4, "Use h/j/k/l to navigate, ENTER to select a date", curses.color_pair(WHITE))
         
-        # Modify this line to conditionally include 's: Stats' only when show_stats is enabled
         options_text = "r: Random date, o: Options"
         if options['show_stats']:
             options_text += ", s: Stats"
@@ -433,13 +432,13 @@ def main(stdscr):
 
         if key == ord('q'):
             break
-        elif key == ord('h'):
+        elif key in [ord('h'), curses.KEY_LEFT, ord('b')]:  # Left arrow, 'h', or 'b'
             current_date -= timedelta(days=1)
-        elif key == ord('l'):
+        elif key in [ord('l'), curses.KEY_RIGHT, ord('f')]:  # Right arrow, 'l', or 'f'
             current_date += timedelta(days=1)
-        elif key == ord('k'):
+        elif key in [ord('k'), curses.KEY_UP, ord('p')]:  # Up arrow, 'k', or 'p'
             current_date -= timedelta(days=7)
-        elif key == ord('j'):
+        elif key in [ord('j'), curses.KEY_DOWN, ord('n')]:  # Down arrow, 'j', or 'n'
             current_date += timedelta(days=7)
         elif key == ord('r'):
             current_date = datetime.strptime(random.choice(list(available_dates)), "%Y-%m-%d")
@@ -448,6 +447,10 @@ def main(stdscr):
         elif key == ord('s'):
             if options['show_stats']:
                 draw_stats_menu(stdscr, stats)
+        elif key == ord('$'):
+            current_date = datetime.strptime(max(available_dates), "%Y-%m-%d")
+        elif key == ord('0'):
+            current_date = datetime.strptime(min(available_dates), "%Y-%m-%d")
         elif key == 10:  # ENTER key
             if selected_date in puzzle_dict:
                 result = play_puzzle(stdscr, puzzle_dict[selected_date], stats, infinite_tries)
@@ -465,5 +468,5 @@ if __name__ == "__main__":
     try:
         curses.wrapper(main)
     except curses.error:
-        print("An error occurred. Make sure your terminal is at least 80x24 characters.")
+        print("An error occurred. Make sure your terminal is at least 80x18 characters.")
         sys.exit(1)
