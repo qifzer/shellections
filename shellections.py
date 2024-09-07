@@ -49,18 +49,62 @@ PURPLE = 4
 WHITE = 5
 BLACK = 6
 
-def setup_colors():
-    curses.init_pair(YELLOW, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-    curses.init_pair(BLUE, curses.COLOR_BLUE, curses.COLOR_BLACK)
-    curses.init_pair(GREEN, curses.COLOR_GREEN, curses.COLOR_BLACK)
-    curses.init_pair(PURPLE, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-    curses.init_pair(WHITE, curses.COLOR_WHITE, curses.COLOR_BLACK)
-    curses.init_pair(BLACK, curses.COLOR_BLACK, curses.COLOR_WHITE)
+# Define themes
+THEMES = {
+    "black": {
+        "bg": curses.COLOR_BLACK,
+        "fg": curses.COLOR_WHITE,
+        "yellow": curses.COLOR_YELLOW,
+        "blue": curses.COLOR_BLUE,
+        "green": curses.COLOR_GREEN,
+        "purple": curses.COLOR_MAGENTA,
+    },
+    "default": {
+        "bg": -1,  # Use default terminal background
+        "fg": -1,  # Use default terminal foreground
+        "yellow": curses.COLOR_YELLOW,
+        "blue": curses.COLOR_BLUE,
+        "green": curses.COLOR_GREEN,
+        "purple": curses.COLOR_MAGENTA,
+    },
+    "light": {
+        "bg": curses.COLOR_WHITE,
+        "fg": curses.COLOR_BLACK,
+        "yellow": curses.COLOR_YELLOW,
+        "blue": curses.COLOR_BLUE,
+        "green": curses.COLOR_GREEN,
+        "purple": curses.COLOR_MAGENTA,
+    },
+    "grey": {
+        "bg": 235,  # Background #282A36
+        "fg": 253,  # Foreground #F8F8F2
+        "yellow": 228,  # Yellow #F1FA8C
+        "blue": 117,  # Cyan #8BE9FD
+        "green": 84,  # Green #50FA7B
+        "purple": 141,  # Purple #BD93F9
+    },
+}
+
+def setup_colors(stdscr, theme):
+    curses.use_default_colors()
+    
+    bg = THEMES[theme]["bg"]
+    fg = THEMES[theme]["fg"]
+    
+    curses.init_pair(YELLOW, THEMES[theme]["yellow"], bg)
+    curses.init_pair(BLUE, THEMES[theme]["blue"], bg)
+    curses.init_pair(GREEN, THEMES[theme]["green"], bg)
+    curses.init_pair(PURPLE, THEMES[theme]["purple"], bg)
+    curses.init_pair(WHITE, fg, bg)
+    curses.init_pair(BLACK, bg, fg)
+
+    # Set the default background color
+    stdscr.bkgd(' ', curses.color_pair(WHITE))
 
 def draw_centered_text(stdscr, y, text, color_pair=WHITE, attr=curses.A_NORMAL):
     height, width = stdscr.getmaxyx()
     x = (width - len(text)) // 2
-    stdscr.addstr(y, x, text, color_pair | attr)
+    stdscr.addstr(y, x, text, curses.color_pair(color_pair) | attr)
 
 def draw_calendar(stdscr, year, month, available_dates, selected_date, completed_dates):
     height, width = stdscr.getmaxyx()
@@ -95,14 +139,21 @@ def draw_calendar(stdscr, year, month, available_dates, selected_date, completed
                     stdscr.addstr(y, x, f"{day:2d}", curses.color_pair(WHITE))
 
 def load_options():
+    default_options = {'track_completed': True, 'show_stats': True, 'theme': 'black'}
     if os.path.exists('options.json'):
         with open('options.json', 'r') as f:
-            return json.load(f)
-    return {'track_completed': True, 'show_stats': True}
+            loaded_options = json.load(f)
+        # Update default options with loaded options, ensuring all keys are present
+        default_options.update(loaded_options)
+    return default_options
 
 def save_options(options):
+    default_options = {'track_completed': True, 'show_stats': True, 'theme': 'black'}
+    # Ensure all keys are present before saving
+    options_to_save = default_options.copy()
+    options_to_save.update(options)
     with open('options.json', 'w') as f:
-        json.dump(options, f)
+        json.dump(options_to_save, f)
 
 def load_stats():
     if os.path.exists('stats.json'):
@@ -121,13 +172,21 @@ def draw_options_menu(stdscr, options):
     draw_centered_text(stdscr, 2, "Options", curses.color_pair(WHITE), curses.A_BOLD)
     draw_centered_text(stdscr, 4, f"1. Track completed puzzles: {'On' if options['track_completed'] else 'Off'}", curses.color_pair(WHITE))
     draw_centered_text(stdscr, 5, f"2. Show stats menu: {'On' if options['show_stats'] else 'Off'}", curses.color_pair(WHITE))
-    draw_centered_text(stdscr, 7, "Press the number to toggle an option, or any other key to return", curses.color_pair(WHITE))
+    draw_centered_text(stdscr, 6, f"3. Theme: {options['theme']}", curses.color_pair(WHITE))
+    draw_centered_text(stdscr, 8, "Press the number to change an option, or any other key to return", curses.color_pair(WHITE))
 
     key = stdscr.getch()
     if key == ord('1'):
         options['track_completed'] = not options['track_completed']
     elif key == ord('2'):
         options['show_stats'] = not options['show_stats']
+    elif key == ord('3'):
+        themes = list(THEMES.keys())
+        current_index = themes.index(options['theme'])
+        options['theme'] = themes[(current_index + 1) % len(themes)]
+        setup_colors(stdscr, options['theme'])
+        stdscr.clear()
+        stdscr.refresh()
 
     save_options(options)
 
@@ -341,14 +400,16 @@ def main(stdscr):
         return
 
     curses.curs_set(0)
-    setup_colors()
+    options = load_options()
+    setup_colors(stdscr, options['theme'])
+    stdscr.clear()
+    stdscr.refresh()
 
     available_dates = set(puzzle_dict.keys())
     current_date = datetime.now()
     year, month = current_date.year, current_date.month
     selected_date = current_date.strftime("%Y-%m-%d")
 
-    options = load_options()
     stats = load_stats()
 
     infinite_tries = False
