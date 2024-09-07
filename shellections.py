@@ -104,7 +104,9 @@ def setup_colors(stdscr, theme):
 def draw_centered_text(stdscr, y, text, color_pair=WHITE, attr=curses.A_NORMAL):
     height, width = stdscr.getmaxyx()
     x = (width - len(text)) // 2
-    stdscr.addstr(y, x, text, curses.color_pair(color_pair) | attr)
+    stdscr.attron(curses.color_pair(color_pair) | attr)
+    stdscr.addstr(y, x, text)
+    stdscr.attroff(curses.color_pair(color_pair) | attr)
 
 def draw_calendar(stdscr, year, month, available_dates, selected_date, completed_dates):
     height, width = stdscr.getmaxyx()
@@ -243,8 +245,8 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
 
         # Display correct groups
         for i, group in enumerate(correct_groups):
-            color = [YELLOW, BLUE, GREEN, PURPLE][i]
-            draw_centered_text(stdscr, 5 + i, f"{group['group']}: {', '.join(group['members'])}", curses.color_pair(color))
+            color = [YELLOW, GREEN, BLUE, PURPLE][i]
+            draw_centered_text(stdscr, 5 + i, f"{group['group']}: {', '.join(group['members'])}", color)
 
         # Display remaining words
         remaining_words = [word for word in all_words if not any(word in group['members'] for group in correct_groups)]
@@ -335,7 +337,7 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
                 for group in puzzle['answers']:
                     matches = sum(1 for word in selected_words if word in group['members'])
                     if matches == 3:
-                        draw_centered_text(stdscr, height - 4, "You've matched 3 out of 4 in a group!", curses.color_pair(YELLOW) | curses.A_BOLD)
+                        draw_centered_text(stdscr, height - 4, "You've matched 3 out of 4 in a group!", YELLOW, curses.A_BOLD)
                         stdscr.refresh()
                         stdscr.getch()  # Wait for user input before continuing
                         break
@@ -363,14 +365,14 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
     # Game over screen
     stdscr.clear()
     if len(correct_groups) == 4:
-        draw_centered_text(stdscr, height // 2 - 4, "Congratulations! You solved the puzzle!", curses.color_pair(GREEN))
+        draw_centered_text(stdscr, height // 2 - 4, "Congratulations! You solved the puzzle!", GREEN)
         stats['total_won'] += 1
     else:
-        draw_centered_text(stdscr, height // 2 - 4, "Game Over! Here are the correct answers:", curses.color_pair(WHITE))
+        draw_centered_text(stdscr, height // 2 - 4, "Game Over! Here are the correct answers:", WHITE)
 
     for i, group in enumerate(puzzle['answers']):
-        color = [YELLOW, BLUE, GREEN, PURPLE][i]
-        draw_centered_text(stdscr, height // 2 - 2 + i * 2, f"{group['group']}: {', '.join(group['members'])}", curses.color_pair(color))
+        color = [YELLOW, GREEN, BLUE, PURPLE][i]
+        draw_centered_text(stdscr, height // 2 - 2 + i * 2, f"{group['group']}: {', '.join(group['members'])}", color)
 
     stats['total_played'] += 1
     stats['completed_dates'].append(puzzle['date'])
