@@ -231,7 +231,8 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
     selected_words = []
     correct_groups = []
     mistakes_remaining = 4 if not infinite_tries else float('inf')
-    start_time = datetime.now()
+    attempts_used = 0
+    emoji_representation = []
 
     cursor_pos = [0, 0]
 
@@ -321,6 +322,7 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
         elif key in [ord('s'), ord('S')]:  # Shuffle functionality
             random.shuffle(all_words)
         elif key == 10 and len(selected_words) == 4:  # ENTER key
+            attempts_used += 1
             # Check if the selection is correct
             correct_group = None
             for group in puzzle['answers']:
@@ -340,70 +342,57 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
                         stdscr.getch()  # Wait for user input before continuing
                         break
 
-            if not infinite_tries:
-                mistakes_remaining -= 1
+            # Create emoji representation for this attempt
+            attempt_emojis = []
+            for word in selected_words:
+                for i, group in enumerate(puzzle['answers']):
+                    if word in group['members']:
+                        attempt_emojis.append(["���", "🟦", "", "🟪"][i])
+                        break
+
+            if len(correct_groups) > len(emoji_representation):
+                emoji_representation.append(attempt_emojis)
+            else:
+                emoji_representation.append(["🟥", "🟥", "🟥", "🟥"])
+                if not infinite_tries:
+                    mistakes_remaining -= 1
 
             selected_words = []
 
         if mistakes_remaining == 0 or len(correct_groups) == 4:
             break
 
-    end_time = datetime.now()
-    duration = end_time - start_time
+    # Game over screen
+    stdscr.clear()
+    if len(correct_groups) == 4:
+        draw_centered_text(stdscr, height // 2 - 4, "Congratulations! You solved the puzzle!", GREEN)
+        stats['total_won'] += 1
+    else:
+        draw_centered_text(stdscr, height // 2 - 4, "Game Over! Here are the correct answers:", WHITE)
 
-    # Show correct answers
-    show_correct_answers(stdscr, puzzle)
-
-    while True:
-        key = stdscr.getch()
-        if key == ord('v'):
-            show_game_summary(stdscr, puzzle, correct_groups, duration, mistakes_remaining, infinite_tries)
-        elif key == ord('q'):
-            return 'quit'
-        else:
-            break
+    for i, group in enumerate(puzzle['answers']):
+        color = [YELLOW, GREEN, BLUE, PURPLE][i]
+        draw_centered_text(stdscr, height // 2 - 2 + i * 2, f"{group['group']}: {', '.join(group['members'])}", color)
 
     stats['total_played'] += 1
-    if len(correct_groups) == 4:
-        stats['total_won'] += 1
     stats['completed_dates'].append(puzzle['date'])
     save_stats(stats)
 
-def show_correct_answers(stdscr, puzzle):
+    draw_centered_text(stdscr, height - 2, "Press 'v' to view results, any other key to continue, or 'q' to quit...", curses.color_pair(WHITE))
+    key = stdscr.getch()
+    if key == ord('q'):
+        return 'quit'
+    elif key == ord('v'):
+        show_results(stdscr, puzzle, emoji_representation)
+
+def show_results(stdscr, puzzle, emoji_representation):
     stdscr.clear()
     height, width = stdscr.getmaxyx()
 
-    draw_centered_text(stdscr, 2, f"Puzzle Answers - {puzzle['date']}", curses.color_pair(WHITE), curses.A_BOLD)
+    draw_centered_text(stdscr, height // 2 - 4, "Connections", curses.color_pair(WHITE), curses.A_BOLD)
 
-    for i, group in enumerate(puzzle['answers']):
-        color = [YELLOW, GREEN, BLUE, PURPLE][i]
-        draw_centered_text(stdscr, 4 + i, f"{group['group']}: {', '.join(group['members'])}", color)
-
-    draw_centered_text(stdscr, height - 3, "Press 'v' for detailed summary, any other key to continue", curses.color_pair(WHITE))
-    stdscr.refresh()
-
-def show_game_summary(stdscr, puzzle, correct_groups, duration, mistakes_remaining, infinite_tries):
-    stdscr.clear()
-    height, width = stdscr.getmaxyx()
-
-    draw_centered_text(stdscr, 2, f"Puzzle Summary - {puzzle['date']}", curses.color_pair(WHITE), curses.A_BOLD)
-
-    if len(correct_groups) == 4:
-        draw_centered_text(stdscr, 4, "Congratulations! You solved the puzzle!", curses.color_pair(GREEN))
-    else:
-        draw_centered_text(stdscr, 4, "Game Over! Here are the correct answers:", curses.color_pair(WHITE))
-
-    # Display correct groups
-    for i, group in enumerate(puzzle['answers']):
-        color = [YELLOW, GREEN, BLUE, PURPLE][i]
-        draw_centered_text(stdscr, 6 + i, f"{group['group']}: {', '.join(group['members'])}", color)
-
-    # Display game statistics
-    stats_y = 11
-    draw_centered_text(stdscr, stats_y, "Game Statistics:", curses.color_pair(WHITE), curses.A_UNDERLINE)
-    draw_centered_text(stdscr, stats_y + 2, f"Time taken: {duration.total_seconds():.2f} seconds", curses.color_pair(WHITE))
-    if not infinite_tries:
-        draw_centered_text(stdscr, stats_y + 3, f"Mistakes remaining: {mistakes_remaining}", curses.color_pair(WHITE))
+    for i, row in enumerate(emoji_representation):
+        draw_centered_text(stdscr, height // 2 + i, ''.join(row), curses.color_pair(WHITE))
 
     draw_centered_text(stdscr, height - 2, "Press any key to continue...", curses.color_pair(WHITE))
     stdscr.getch()
@@ -431,13 +420,14 @@ def main(stdscr):
         stdscr.clear()
         draw_calendar(stdscr, year, month, available_dates, selected_date, set(stats['completed_dates']))
         height, width = stdscr.getmaxyx()
-        draw_centered_text(stdscr, height - 4, "Use h/j/k/l to navigate, ENTER to select a date", curses.color_pair(WHITE))
+        draw_centered_text(stdscr, height - 5, "Use h/j/k/l to navigate, ENTER to select a date", curses.color_pair(WHITE))
         
         options_text = "r: Random date, o: Options"
         if options['show_stats']:
             options_text += ", s: Stats"
-        options_text += ", q: Quit"
-        draw_centered_text(stdscr, height - 3, options_text, curses.color_pair(WHITE))
+        options_text += ", i: Toggle infinite tries, q: Quit"
+        draw_centered_text(stdscr, height - 4, options_text, curses.color_pair(WHITE))
+        draw_centered_text(stdscr, height - 3, f"Infinite tries: {'On' if infinite_tries else 'Off'}", curses.color_pair(WHITE))
 
         key = stdscr.getch()
 
@@ -458,17 +448,15 @@ def main(stdscr):
         elif key == ord('s'):
             if options['show_stats']:
                 draw_stats_menu(stdscr, stats)
-        elif key == ord('$'):
-            current_date = datetime.strptime(max(available_dates), "%Y-%m-%d")
-        elif key == ord('0'):
-            current_date = datetime.strptime(min(available_dates), "%Y-%m-%d")
+        elif key == ord('i'):
+            infinite_tries = not infinite_tries
         elif key == 10:  # ENTER key
             if selected_date in puzzle_dict:
                 result = play_puzzle(stdscr, puzzle_dict[selected_date], stats, infinite_tries)
                 if result == 'quit':
                     break
             else:
-                draw_centered_text(stdscr, height - 5, "No puzzle available for this date.", curses.color_pair(1))
+                draw_centered_text(stdscr, height - 6, "No puzzle available for this date.", curses.color_pair(YELLOW))
                 stdscr.getch()
 
         year, month = current_date.year, current_date.month
