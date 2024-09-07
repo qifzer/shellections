@@ -14,7 +14,7 @@ We encourage users to:
 - Calendar view for selecting puzzles by date
 - Random puzzle selection
 - Track completed puzzles and view statistics
-- Customizable options
+- Basic theme implementation.
 - Infinite tries mode for practice
 - Shuffle functionality to rearrange words
 - Emoji representation of your attempts
