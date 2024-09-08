@@ -347,7 +347,7 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
             for word in selected_words:
                 for i, group in enumerate(puzzle['answers']):
                     if word in group['members']:
-                        attempt_emojis.append(["���", "🟦", "", "🟪"][i])
+                        attempt_emojis.append(["", "🟦", "", "🟪"][i])
                         break
 
             if len(correct_groups) > len(emoji_representation):
@@ -412,6 +412,9 @@ def main(stdscr):
     year, month = current_date.year, current_date.month
     selected_date = current_date.strftime("%Y-%m-%d")
 
+    earliest_date = min(datetime.strptime(date, "%Y-%m-%d") for date in available_dates)
+    latest_date = max(datetime.strptime(date, "%Y-%m-%d") for date in available_dates)
+
     stats = load_stats()
 
     infinite_tries = False
@@ -420,13 +423,14 @@ def main(stdscr):
         stdscr.clear()
         draw_calendar(stdscr, year, month, available_dates, selected_date, set(stats['completed_dates']))
         height, width = stdscr.getmaxyx()
-        draw_centered_text(stdscr, height - 5, "Use h/j/k/l to navigate, ENTER to select a date", curses.color_pair(WHITE))
+        draw_centered_text(stdscr, height - 6, "Use h/j/k/l to navigate, ENTER to select a date", curses.color_pair(WHITE))
         
         options_text = "r: Random date, o: Options"
         if options['show_stats']:
             options_text += ", s: Stats"
         options_text += ", i: Toggle infinite tries, q: Quit"
-        draw_centered_text(stdscr, height - 4, options_text, curses.color_pair(WHITE))
+        draw_centered_text(stdscr, height - 5, options_text, curses.color_pair(WHITE))
+        draw_centered_text(stdscr, height - 4, "0: Earliest date, $: Latest date", curses.color_pair(WHITE))
         draw_centered_text(stdscr, height - 3, f"Infinite tries: {'On' if infinite_tries else 'Off'}", curses.color_pair(WHITE))
 
         key = stdscr.getch()
@@ -450,6 +454,10 @@ def main(stdscr):
                 draw_stats_menu(stdscr, stats)
         elif key == ord('i'):
             infinite_tries = not infinite_tries
+        elif key == ord('0'):
+            current_date = earliest_date
+        elif key == ord('$'):
+            current_date = latest_date
         elif key == 10:  # ENTER key
             if selected_date in puzzle_dict:
                 result = play_puzzle(stdscr, puzzle_dict[selected_date], stats, infinite_tries)
