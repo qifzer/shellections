@@ -7,6 +7,7 @@ import os
 import random
 import signal
 import sys
+import time
 
 # Load the data from the JSON file
 def download_connections_json():
@@ -48,6 +49,7 @@ GREEN = 3
 PURPLE = 4
 WHITE = 5
 BLACK = 6
+RED = 7
 
 # Define themes
 THEMES = {
@@ -58,6 +60,7 @@ THEMES = {
         "blue": curses.COLOR_BLUE,
         "green": curses.COLOR_GREEN,
         "purple": curses.COLOR_MAGENTA,
+        "red": curses.COLOR_RED,
     },
     "default": {
         "bg": -1,  # Use default terminal background
@@ -66,6 +69,7 @@ THEMES = {
         "blue": curses.COLOR_BLUE,
         "green": curses.COLOR_GREEN,
         "purple": curses.COLOR_MAGENTA,
+        "red": curses.COLOR_RED,
     },
     "light": {
         "bg": curses.COLOR_WHITE,
@@ -74,6 +78,7 @@ THEMES = {
         "blue": curses.COLOR_BLUE,
         "green": curses.COLOR_GREEN,
         "purple": curses.COLOR_MAGENTA,
+        "red": curses.COLOR_RED,
     },
     "grey": {
         "bg": 235,  # Background #282A36
@@ -82,6 +87,7 @@ THEMES = {
         "blue": 117,  # Cyan #8BE9FD
         "green": 84,  # Green #50FA7B
         "purple": 141,  # Purple #BD93F9
+        "red": curses.COLOR_RED,
     },
 }
 
@@ -97,6 +103,7 @@ def setup_colors(stdscr, theme):
     curses.init_pair(PURPLE, THEMES[theme]["purple"], bg)
     curses.init_pair(WHITE, fg, bg)
     curses.init_pair(BLACK, bg, fg)
+    curses.init_pair(RED, THEMES[theme]["red"], bg)
 
     # Set the default background color
     stdscr.bkgd(' ', curses.color_pair(WHITE))
@@ -236,6 +243,9 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
 
     cursor_pos = [0, 0]
 
+    start_time = time.time()
+    attempts = []
+
     while mistakes_remaining > 0 and len(correct_groups) < 4:
         stdscr.clear()
         height, width = stdscr.getmaxyx()
@@ -323,6 +333,7 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
             random.shuffle(all_words)
         elif key == 10 and len(selected_words) == 4:  # ENTER key
             attempts_used += 1
+            attempts.append(selected_words.copy())
             # Check if the selection is correct
             correct_group = None
             for group in puzzle['answers']:
@@ -362,6 +373,9 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
         if mistakes_remaining == 0 or len(correct_groups) == 4:
             break
 
+    end_time = time.time()
+    completion_time = end_time - start_time
+
     # Game over screen
     stdscr.clear()
     if len(correct_groups) == 4:
@@ -383,16 +397,26 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
     if key == ord('q'):
         return 'quit'
     elif key == ord('v'):
-        show_results(stdscr, puzzle, emoji_representation)
+        show_results(stdscr, puzzle, attempts, completion_time, len(correct_groups) == 4)
 
-def show_results(stdscr, puzzle, emoji_representation):
+def show_results(stdscr, puzzle, attempts, completion_time, solved):
     stdscr.clear()
     height, width = stdscr.getmaxyx()
 
-    draw_centered_text(stdscr, height // 2 - 4, "Connections", curses.color_pair(WHITE), curses.A_BOLD)
+    draw_centered_text(stdscr, 2, "Connections Results", curses.color_pair(WHITE), curses.A_BOLD)
 
-    for i, row in enumerate(emoji_representation):
-        draw_centered_text(stdscr, height // 2 + i, ''.join(row), curses.color_pair(WHITE))
+    if solved:
+        draw_centered_text(stdscr, 4, f"Puzzle solved in {completion_time:.2f} seconds!", curses.color_pair(GREEN))
+    else:
+        draw_centered_text(stdscr, 4, f"Puzzle not solved. Time spent: {completion_time:.2f} seconds", curses.color_pair(RED))
+
+    draw_centered_text(stdscr, 6, f"Total attempts: {len(attempts)}", curses.color_pair(WHITE))
+
+    for i, attempt in enumerate(attempts, start=1):
+        attempt_str = f"Attempt {i}: {', '.join(attempt)}"
+        y = 8 + i
+        if y < height - 3:
+            draw_centered_text(stdscr, y, attempt_str, curses.color_pair(WHITE))
 
     draw_centered_text(stdscr, height - 2, "Press any key to continue...", curses.color_pair(WHITE))
     stdscr.getch()
