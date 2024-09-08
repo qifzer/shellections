@@ -430,8 +430,7 @@ def main(stdscr):
             options_text += ", s: Stats"
         options_text += ", i: Toggle infinite tries, q: Quit"
         draw_centered_text(stdscr, height - 5, options_text, curses.color_pair(WHITE))
-        draw_centered_text(stdscr, height - 4, "0: Earliest date, $: Latest date", curses.color_pair(WHITE))
-        draw_centered_text(stdscr, height - 3, f"Infinite tries: {'On' if infinite_tries else 'Off'}", curses.color_pair(WHITE))
+        draw_centered_text(stdscr, height - 4, f"Infinite tries: {'On' if infinite_tries else 'Off'}", curses.color_pair(WHITE))
 
         key = stdscr.getch()
 
