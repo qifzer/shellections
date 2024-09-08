@@ -239,7 +239,6 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
     correct_groups = []
     mistakes_remaining = 4 if not infinite_tries else float('inf')
     attempts_used = 0
-    emoji_representation = []
 
     cursor_pos = [0, 0]
 
@@ -353,20 +352,8 @@ def play_puzzle(stdscr, puzzle, stats, infinite_tries=False):
                         stdscr.getch()  # Wait for user input before continuing
                         break
 
-            # Create emoji representation for this attempt
-            attempt_emojis = []
-            for word in selected_words:
-                for i, group in enumerate(puzzle['answers']):
-                    if word in group['members']:
-                        attempt_emojis.append(["", "🟦", "", "🟪"][i])
-                        break
-
-            if len(correct_groups) > len(emoji_representation):
-                emoji_representation.append(attempt_emojis)
-            else:
-                emoji_representation.append(["🟥", "🟥", "🟥", "🟥"])
-                if not infinite_tries:
-                    mistakes_remaining -= 1
+            if not correct_group and not infinite_tries:
+                mistakes_remaining -= 1
 
             selected_words = []
 
